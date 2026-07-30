@@ -1,0 +1,7 @@
+Predmet: Test greske LLM izlaza
+
+TRIGGER_MALFORMED_LLM
+
+Ovaj email namjerno sadrzi sentinel koji nas LLM sloj (mock ili pravi) prepoznaje
+kao signal da vrati namjerno pokvaren/nedovrsen JSON - demonstracija obaveznog
+zahtjeva "(a) LLM vrati neispravan izlaz" (vidi llm_client.py, MALFORMED_OUTPUT_TRIGGER).
