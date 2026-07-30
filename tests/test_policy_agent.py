@@ -64,6 +64,26 @@ def test_deaktivacija_static_ip_bez_premium_supporta_prolazi():
     assert decision.approved is True
 
 
+def test_change_package_s_pojedinacnom_uslugom_kao_ciljem_se_odbija():
+    # change_package(id, EU_ROAMING) bi tiho postavio "paket" na eu_roaming
+    # da ExtractedRequest sam po sebi ne sprijeci ovu kombinaciju - Policy mora.
+    extracted = _extracted(OptionType.EU_ROAMING, ActionType.CHANGE_PACKAGE)
+    customer = _customer()
+
+    decision = _run(extracted, customer)
+
+    assert decision.approved is False
+
+
+def test_activate_s_paketom_kao_ciljem_se_odbija():
+    extracted = _extracted(OptionType.PACKAGE_PREMIUM, ActionType.ACTIVATE)
+    customer = _customer()
+
+    decision = _run(extracted, customer)
+
+    assert decision.approved is False
+
+
 def test_promjena_paketa_gleda_razliku_cijena_ne_apsolutnu_cijenu():
     # basic -> standard je +15 EUR, tocno na pragu (ne iznad) - ne bi trebalo traziti odobrenje
     extracted = _extracted(OptionType.PACKAGE_STANDARD, ActionType.CHANGE_PACKAGE)

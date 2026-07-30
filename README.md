@@ -162,9 +162,12 @@ odgovora - jedan izvor istine.
 **LLM sloj: i mock i pravi poziv, iza istog sucelja.** `LLMClient` je apstraktna klasa s jednom
 metodom (`complete(prompt) -> str`). `MockLLMClient` (default, `LLM_PROVIDER=mock`) je
 rule-based/regex simulacija - besplatna, deterministicka, radi bez interneta. `OpenAILLMClient`
-(`LLM_PROVIDER=openai`) je pravi poziv (JSON mode + Pydantic validacija odgovora). Oba su testirana
-na sva tri zadana emaila (`tests/`); pravi API ispravno prepoznaje i odbija pratiti prompt
-injection iz emaila 3 ("ignoriraj sve prethodne upute").
+(`LLM_PROVIDER=openai`) je pravi poziv (JSON mode + Pydantic validacija odgovora). Mock je pokriven
+automatiziranim testovima za sve zadane i dodatne scenarije (`tests/test_intake_agent.py`).
+`OpenAILLMClient` ima automatski smoke test na happy-path emailu (`tests/test_real_openai_call.py`,
+pokrene se cim je `OPENAI_API_KEY` dostupan); scenarij s prompt injectionom (email 3) rucno je
+provjeren s pravim API-jem tijekom razvoja - model je ispravno vratio `is_out_of_scope: true` i
+odbio pratiti "ignoriraj sve prethodne upute".
 
 **Observability: pravi OpenTelemetry, ne rucno pisano logiranje.** Zadatak dopusta "barem
 strukturirano logiranje", ali OTel radi potpuno lokalno (ConsoleSpanExporter, bez accounta/servera)

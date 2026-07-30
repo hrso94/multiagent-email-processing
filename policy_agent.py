@@ -34,6 +34,14 @@ DEACTIVATION_BLOCKED_BY: dict[OptionType, set[OptionType]] = {
     OptionType.STATIC_IP: {OptionType.PREMIUM_SUPPORT},
 }
 
+# Validacija oblika zahtjeva: paketi se mijenjaju samo s change_package, a
+# pojedinacne usluge samo s activate/deactivate. Bez ovoga bi npr.
+# change_package(id, OptionType.EU_ROAMING) tiho postavio "paket" korisnika
+# na eu_roaming - ExtractedRequest sam po sebi to ne sprijeci jer su obje
+# vrijednosti zasebno valjani OptionType clanovi.
+PACKAGE_OPTIONS = {OptionType.PACKAGE_BASIC, OptionType.PACKAGE_STANDARD, OptionType.PACKAGE_PREMIUM}
+SERVICE_OPTIONS = {OptionType.EU_ROAMING, OptionType.STATIC_IP, OptionType.PREMIUM_SUPPORT}
+
 
 def _cost_delta_eur(extracted: ExtractedRequest, customer: CustomerRecord) -> float:
     """Koliko ce se mjesecni racun promijeniti ako se zahtjev izvrsi."""
@@ -52,6 +60,18 @@ class PolicyAgent:
         )
 
         with tracer.span("policy_agent") as span:
+            if extracted.action == ActionType.CHANGE_PACKAGE and extracted.option not in PACKAGE_OPTIONS:
+                reason = "Akcija change_package zahtijeva paket kao cilj, ne pojedinacnu uslugu."
+                decision = PolicyDecision(approved=False, requires_human_approval=False, reason=reason, violated_rules=[reason])
+                span.log("policy_decision", approved=False, requires_human_approval=False, reason=reason)
+                return decision
+
+            if extracted.action in (ActionType.ACTIVATE, ActionType.DEACTIVATE) and extracted.option not in SERVICE_OPTIONS:
+                reason = "Paketi se mijenjaju akcijom change_package, ne activate/deactivate."
+                decision = PolicyDecision(approved=False, requires_human_approval=False, reason=reason, violated_rules=[reason])
+                span.log("policy_decision", approved=False, requires_human_approval=False, reason=reason)
+                return decision
+
             blockers = DEACTIVATION_BLOCKED_BY.get(extracted.option, set())
             conflicting = blockers & set(customer.active_options)
 

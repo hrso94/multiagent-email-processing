@@ -1,23 +1,14 @@
 """
-LLM sloj.
+LLM sloj s dvije zamjenjive implementacije istog sucelja:
 
-Nemam pristup pravom LLM API-ju za ovaj zadatak, pa je ovdje MockLLMClient -
-namjerno naglaseno, kako i trazi zadatak ("architecture over live calls").
+- MockLLMClient: rule-based/regex simulacija, besplatna i deterministicka,
+  radi bez API kljuca (default, LLM_PROVIDER=mock).
+- OpenAILLMClient: stvarni poziv na OpenAI API (LLM_PROVIDER=openai).
 
 Kljucna dizajnerska odluka: LLMClient je apstraktno sucelje s jednom metodom,
-complete(prompt) -> str (sirovi tekst, ocekivano JSON). Intake agent (idući
-file) zove SAMO to sucelje i ne zna je li iza njega mock ili pravi API poziv.
-Da je ovo produkcija, MockLLMClient bi se zamijenio s npr.
-
-    class AnthropicLLMClient(LLMClient):
-        def complete(self, prompt: str) -> str:
-            response = anthropic_client.messages.create(
-                model="claude-sonnet-5",
-                messages=[{"role": "user", "content": prompt}],
-            )
-            return response.content[0].text
-
-- nista u intake_agent.py se ne bi promijenilo.
+complete(prompt) -> str (sirovi tekst, ocekivano JSON). IntakeAgent zove SAMO
+to sucelje i ne zna koja se implementacija nalazi iza njega - zamjena mocka
+pravim pozivom (ili npr. Anthropic API-jem) ne dira nista u intake_agent.py.
 """
 
 from __future__ import annotations
@@ -41,7 +32,7 @@ class LLMClient(ABC):
 
 # Sentinel koji nas MOCK prepoznaje kao "simuliraj da je LLM vratio pokvaren
 # izlaz". Sluzi iskljucivo za demonstraciju obaveznog zahtjeva "(a) LLM vrati
-# neispravan izlaz" - koristi se u jednom od demo emailova (emails/05_*.txt).
+# neispravan izlaz" - koristi se u emails/06_malformed_llm_demo.txt.
 MALFORMED_OUTPUT_TRIGGER = "TRIGGER_MALFORMED_LLM"
 
 
@@ -242,6 +233,8 @@ def build_llm_client() -> LLMClient:
     (bez toga, ili LLM_PROVIDER=mock) -> MockLLMClient
     """
     provider = os.environ.get("LLM_PROVIDER", "mock").lower()
+    if provider == "mock":
+        return MockLLMClient()
     if provider == "openai":
         return OpenAILLMClient()
-    return MockLLMClient()
+    raise ValueError(f"Nepoznat LLM_PROVIDER: {provider!r}. Dozvoljene vrijednosti su 'mock' i 'openai'.")

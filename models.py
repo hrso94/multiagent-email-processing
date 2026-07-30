@@ -86,6 +86,15 @@ class ExtractedRequest(BaseModel):
         description="Kratko objasnjenje zasto je LLM ovako protumacio email - za observability"
     )
 
+    @property
+    def needs_clarification(self) -> bool:
+        """True ako nesto nedostaje ILI ako postoji pitanje za korisnika -
+        npr. kad email sadrzi vise zahtjeva odjednom, missing_fields moze
+        biti prazan (sva pojedinacna polja su pronadena), ali je i dalje
+        nejasno koji zahtjev prvi obraditi. Pipeline provjerava OVO, ne
+        samo missing_fields, da ne bi izvrsio proizvoljno odabranu opciju."""
+        return bool(self.missing_fields or self.clarification_question)
+
 
 # --- Policy agent izlaz --------------------------------------------------
 

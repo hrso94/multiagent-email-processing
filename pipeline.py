@@ -47,7 +47,7 @@ def process_email(raw_email: str) -> RequestRecord:
     if extracted.is_out_of_scope:
         return _finish(record, tracer, RequestStatus.OUT_OF_SCOPE)
 
-    if extracted.missing_fields:
+    if extracted.needs_clarification:
         return _finish(record, tracer, RequestStatus.NEEDS_CLARIFICATION)
 
     # Intake garantira da su customer_id/option/action popunjeni kad
@@ -86,6 +86,9 @@ def resume_after_approval(request_id: str, reviewer: str) -> RequestRecord:
         )
 
     record.reviewed_by = reviewer
+    record.trace_events.append(
+        TraceEvent(span_id=new_id("span"), agent="human", event="manual_approval", data={"reviewer": reviewer})
+    )
     tracer = Tracer(record.trace_id)  # nova Tracer instanca (nov proces), isti business trace_id
     record = _run_executor(record, tracer)
 
